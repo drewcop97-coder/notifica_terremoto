@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Player Notifica Sismica</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 6px;
+      font-family: 'Segoe UI', sans-serif;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      height: 100%;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      color: white;
+      background-color: #d9534f;
+      transition: 0.3s;
+    }
+    button.attivo {
+      background-color: #28a745;
+    }
+  </style>
+</head>
+<body>
+
+  <button id="btn" onclick="sbloccaAudio()">🔇 Attiva Audio</button>
+
+  <script>
+    const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
+    const audio = new Audio(AUDIO_URL);
+    const btn = document.getElementById('btn');
+
+    // Legge il parametro ?id={eventid} passato da Experience Builder
+    const params = new URLSearchParams(window.location.search);
+    const currentId = params.get('id');
+    const previousId = sessionStorage.getItem('ultimo_event_id');
+    const audioSbloccato = sessionStorage.getItem('audio_sbloccato') === 'true';
+
+    // Aggiorna lo stato visivo del pulsante se l'audio era già stato sbloccato
+    if (audioSbloccato) {
+      btn.classList.add('attivo');
+      btn.innerHTML = "🔊 Audio Attivo";
+    }
+
+    // Logica di controllo: suona SOLO se c'era già un ID salvato e ora è diverso
+    if (currentId && previousId && currentId !== previousId) {
+      audio.play().catch(err => {
+        console.warn("Autoplay bloccato: cliccare sul pulsante per abilitare.", err);
+        btn.classList.remove('attivo');
+        btn.innerHTML = "⚠️ Clicca per sbloccare audio";
+      });
+    }
+
+    // Salva l'ID attuale per il prossimo confronto
+    if (currentId) {
+      sessionStorage.setItem('ultimo_event_id', currentId);
+    }
+
+    // Funzione chiamata al click dell'operatore per autorizzare l'audio nel browser
+    function sbloccaAudio() {
+      // Riproduce e mette subito in pausa per ottenere il permesso dal browser
+      audio.play().then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+        sessionStorage.setItem('audio_sbloccato', 'true');
+        btn.classList.add('attivo');
+        btn.innerHTML = "🔊 Audio Attivo (Test OK)";
+      }).catch(e => console.error(e));
+    }
+  </script>
+
+</body>
+</html>
