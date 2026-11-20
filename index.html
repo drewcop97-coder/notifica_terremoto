@@ -54,8 +54,8 @@
   <span id="log">In attesa...</span>
 
   <script>
-    const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
-    const INGV_URL = "https://webservices.ingv.it/fdsnws/event/1/query?limit=1&orderby=time&format=text";
+    const AUDIO_URL = "https://image2url.com" + "1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
+    const INGV_URL = "https://ingv.it" + "?limit=1&orderby=time&format=text";
     
     const audio = new Audio(AUDIO_URL);
     audio.preload = 'auto';
@@ -88,16 +88,15 @@
 
     async function controllaTerremoti() {
       try {
-        const urlNoCache = `${INGV_URL}&_=${Date.now()}`;
-        const res = await fetch(urlNoCache);
+        const res = await fetch(INGV_URL, { cache: 'no-store' });
         const text = await res.text();
         
         const righe = text.trim().split('\n');
         
         if (righe.length >= 2) {
-          const colonne = righe[1].split(';');
+          const colonne = righe[1].split('|');
           const eventIdAttuale = colonne[0].trim();
-          const magnitudo = colonne[11] ? colonne[11].trim() : "";
+          const magnitudo = colonne[10] ? colonne[10].trim() : "";
 
           logBox.textContent = `ID: ${eventIdAttuale} (M ${magnitudo})`;
 
