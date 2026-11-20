@@ -55,7 +55,9 @@
 
   <script>
     const AUDIO_URL = "https://image2url.com" + "1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
-    const INGV_URL = "https://ingv.it" + "?limit=1&orderby=time&format=text";
+    const RAW_INGV_URL = "https://ingv.it" + "?limit=1&orderby=time&format=text";
+    // Proxy CORS per bypassare il blocco di sicurezza del browser verso INGV
+    const PROXY_URL = "https://corsproxy.io?" + encodeURIComponent(RAW_INGV_URL);
     
     const audio = new Audio(AUDIO_URL);
     audio.preload = 'auto';
@@ -88,15 +90,15 @@
 
     async function controllaTerremoti() {
       try {
-        const res = await fetch(INGV_URL, { cache: 'no-store' });
+        const res = await fetch(PROXY_URL, { cache: 'no-store' });
         const text = await res.text();
         
         const righe = text.trim().split('\n');
         
         if (righe.length >= 2) {
-          const colonne = righe[1].split('|');
-          const eventIdAttuale = colonne[0].trim();
-          const magnitudo = colonne[10] ? colonne[10].trim() : "";
+          const colonne = righe.split('|');
+          const eventIdAttuale = colonne.trim();
+          const magnitudo = colonne ? colonne.trim() : "";
 
           logBox.textContent = `ID: ${eventIdAttuale} (M ${magnitudo})`;
 
@@ -111,7 +113,7 @@
           ultimoEventId = eventIdAttuale;
         }
       } catch (e) {
-        logBox.textContent = "Errore INGV: " + e.message;
+        logBox.textContent = "Errore Proxy/INGV: " + e.message;
       }
     }
 
