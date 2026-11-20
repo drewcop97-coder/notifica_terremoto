@@ -12,7 +12,6 @@
       background: transparent;
       display: flex;
       align-items: center;
-      gap: 6px;
       font-family: 'Segoe UI', sans-serif;
       overflow: hidden;
     }
@@ -21,37 +20,21 @@
       border-radius: 12px;
       font-size: 12px;
       font-weight: 600;
-      background-color: #f8d7da;
+      background-color: rgba(248, 215, 218, 0.95);
       color: #721c24;
       border: 1px solid #f5c6cb;
       box-shadow: 0 2px 5px rgba(0,0,0,0.15);
       cursor: pointer;
       user-select: none;
     }
-    #status.nascosto { display: none !important; }
-    #btnTest {
-      padding: 4px 8px;
-      border-radius: 10px;
-      font-size: 11px;
-      background: #222;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    #log {
-      font-size: 11px;
-      background: rgba(255,255,255,0.9);
-      padding: 3px 6px;
-      border-radius: 6px;
-      color: #333;
+    #status.nascosto {
+      display: none !important;
     }
   </style>
 </head>
 <body>
 
   <div id="status" onclick="attivaAudio()">🔇 Clicca qui per abilitare l'audio</div>
-  <button id="btnTest" onclick="simulaTerremoto()">🔔 Test</button>
-  <span id="log">In attesa...</span>
 
   <script>
     const ingvHost = ["webservices", "ingv", "it"].join(".");
@@ -62,12 +45,10 @@
     const proxyHost = ["api", "allorigins", "win"].join(".");
     const PROXY_URL = "https://" + proxyHost + "/raw?url=" + encodeURIComponent(RAW_INGV_URL);
     
-    // Carica il tuo MP3 locale su GitHub
     const mioMp3 = new Audio(encodeURI("Nuovo evento sismico.MP3"));
     mioMp3.preload = 'auto';
 
     const statusBox = document.getElementById('status');
-    const logBox = document.getElementById('log');
     
     let audioCtx = null;
     let audioAbilitato = false;
@@ -108,14 +89,13 @@
           }, 550);
         }
       } catch (err) {
-        logBox.textContent = "Errore paracadute: " + err.message;
+        console.error(err);
       }
     }
 
     function riproduciAllerta() {
       mioMp3.currentTime = 0;
       mioMp3.play().catch(() => {
-        // Se l'MP3 non è trovato o bloccato, attiva automaticamente il Ding-Dong + voce
         suonaParacadute();
       });
     }
@@ -123,7 +103,6 @@
     function attivaAudio() {
       statusBox.classList.add('nascosto');
       
-      // Sblocca sia l'AudioContext (paracadute) sia l'elemento MP3
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       audioCtx.resume();
 
@@ -137,19 +116,12 @@
       });
 
       audioAbilitato = true;
-      logBox.textContent = "Audio attivo!";
-    }
-
-    function simulaTerremoto() {
-      logBox.textContent = "Test INGV...";
-      ultimoEventId = "00000000";
-      controllaTerremoti();
     }
 
     async function controllaTerremoti() {
       try {
         const res = await fetch(PROXY_URL + "&_=" + Date.now());
-        if (!res.ok) throw new Error("HTTP " + res.status);
+        if (!res.ok) return;
         const text = await res.text();
         
         const righe = text.trim().split('\n');
@@ -157,9 +129,6 @@
         if (righe.length >= 2) {
           const colonne = righe[1].split('|');
           const eventIdAttuale = colonne[0].trim();
-          const magnitudo = colonne[10] ? colonne[10].trim() : "";
-
-          logBox.textContent = "ID: " + eventIdAttuale + " (M " + magnitudo + ")";
 
           if (ultimoEventId !== null && eventIdAttuale !== ultimoEventId) {
             if (audioAbilitato) {
@@ -169,11 +138,9 @@
             }
           }
           ultimoEventId = eventIdAttuale;
-        } else {
-          logBox.textContent = "Risposta vuota da INGV";
         }
       } catch (e) {
-        logBox.textContent = "Errore rete: " + e.message;
+        // Ignora eventuali errori temporanei di rete al singolo controllo
       }
     }
 
