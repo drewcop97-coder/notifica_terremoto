@@ -94,6 +94,7 @@
     }
 
     function riproduciAllerta() {
+      mioMp3.volume = 1.0;
       mioMp3.currentTime = 0;
       mioMp3.play().catch(() => {
         suonaParacadute();
@@ -103,16 +104,20 @@
     function attivaAudio() {
       statusBox.classList.add('nascosto');
       
+      // Sblocca Web Audio API
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       audioCtx.resume();
 
-      mioMp3.muted = true;
+      // Sblocca MP3 con volume minimo (0.01) per compatibilità completa con Edge e Safari
+      mioMp3.volume = 0.01;
       mioMp3.play().then(() => {
-        mioMp3.pause();
-        mioMp3.currentTime = 0;
-        mioMp3.muted = false;
+        setTimeout(() => {
+          mioMp3.pause();
+          mioMp3.currentTime = 0;
+          mioMp3.volume = 1.0;
+        }, 50);
       }).catch(() => {
-        mioMp3.muted = false;
+        mioMp3.volume = 1.0;
       });
 
       audioAbilitato = true;
@@ -127,8 +132,8 @@
         const righe = text.trim().split('\n');
         
         if (righe.length >= 2) {
-          const colonne = righe[1].split('|');
-          const eventIdAttuale = colonne[0].trim();
+          const colonne = righe.split('|');
+          const eventIdAttuale = colonne.trim();
 
           if (ultimoEventId !== null && eventIdAttuale !== ultimoEventId) {
             if (audioAbilitato) {
@@ -140,7 +145,7 @@
           ultimoEventId = eventIdAttuale;
         }
       } catch (e) {
-        // Ignora eventuali errori temporanei di rete al singolo controllo
+        // Ignora eventuali errori temporanei di rete
       }
     }
 
