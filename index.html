@@ -12,6 +12,7 @@
       background: transparent;
       display: flex;
       align-items: center;
+      gap: 6px;
       font-family: 'Segoe UI', sans-serif;
       overflow: hidden;
     }
@@ -30,19 +31,25 @@
     #status.nascosto {
       display: none !important;
     }
+    #btnTest {
+      padding: 4px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
 
   <div id="status" onclick="attivaAudio()">🔇 Clicca qui per abilitare l'audio</div>
+  <button id="btnTest" onclick="simulaTerremoto()">🔔 Test</button>
 
   <script>
     const AUDIO_URL = "https://image2url.com";
-    
-    // Il tuo layer ArcGIS Proxy configurato
-    const LAYER_URL = "https://utility.arcgis.com/usrsvcs/servers/7d902cfd09864a8290a6e211dd58a097/rest/services/EventsList/FeatureServer/2"; 
-
-    // Chiede gli ultimi eventi ordinati per il campo ID (se disponibile) o senza filtro
+    const LAYER_URL = "https://arcgis.com"; 
     const queryUrl = `${LAYER_URL}/query?where=1%3D1&outFields=*&resultRecordCount=5&f=json`;
     
     const audio = new Audio(AUDIO_URL);
@@ -66,16 +73,20 @@
       });
     }
 
+    // Funzione di test: simula l'arrivo di un nuovo dato dal layer ArcGIS
+    function simulaTerremoto() {
+      firmaUltimiEventi = "dato_vecchio_simulato";
+      controllaTerremoti();
+    }
+
     async function controllaTerremoti() {
       try {
         const res = await fetch(queryUrl);
         const data = await res.json();
         
         if (data.features && data.features.length > 0) {
-          // Crea una "firma" unica degli attributi dei record restituiti
           const firmaAttuale = JSON.stringify(data.features.map(f => f.attributes));
           
-          // Se non è il primo caricamento e i dati sono cambiati -> NUOVO TERREMOTO -> SUONA!
           if (firmaUltimiEventi !== null && firmaAttuale !== firmaUltimiEventi) {
             if (audioAbilitato) {
               audio.currentTime = 0;
@@ -85,13 +96,14 @@
             }
           }
           firmaUltimiEventi = firmaAttuale;
+        } else {
+          console.warn("Nessun dato ricevuto dal layer:", data);
         }
       } catch (e) {
         console.error("Errore lettura layer ArcGIS:", e);
       }
     }
 
-    // Primo controllo immediato e poi ogni 15 secondi
     controllaTerremoti();
     setInterval(controllaTerremoti, 15000);
   </script>
