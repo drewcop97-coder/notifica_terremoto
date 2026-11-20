@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Player Audio Sismico</title>
+  <title>Notifica Sismica ArcGIS</title>
   <style>
     html, body {
       margin: 0;
@@ -12,7 +12,6 @@
       background: transparent;
       display: flex;
       align-items: center;
-      justify-content: flex-start;
       font-family: 'Segoe UI', sans-serif;
       overflow: hidden;
     }
@@ -35,43 +34,66 @@
 </head>
 <body>
 
-  <div id="status" onclick="sbloccaAudio()">🔇 Clicca qui per abilitare l'audio</div>
+  <div id="status" onclick="attivaAudio()">🔇 Clicca qui per abilitare l'audio</div>
 
   <script>
     const AUDIO_URL = "https://image2url.com";
+    
+    // Il tuo layer ArcGIS Proxy configurato
+    const LAYER_URL = "https://utility.arcgis.com/usrsvcs/servers/7d902cfd09864a8290a6e211dd58a097/rest/services/EventsList/FeatureServer/2"; 
+
+    // Chiede gli ultimi eventi ordinati per il campo ID (se disponibile) o senza filtro
+    const queryUrl = `${LAYER_URL}/query?where=1%3D1&outFields=*&resultRecordCount=5&f=json`;
+    
     const audio = new Audio(AUDIO_URL);
     audio.preload = 'auto';
     const statusBox = document.getElementById('status');
+    
+    let audioAbilitato = false;
+    let firmaUltimiEventi = null;
 
-    function sbloccaAudio() {
-      // 1. Nasconde subito il badge al clic dell'utente
+    function attivaAudio() {
       statusBox.classList.add('nascosto');
-
-      // 2. Sblocca l'elemento Audio con volume a zero
       audio.muted = true;
       audio.play().then(() => {
         audio.pause();
         audio.currentTime = 0;
         audio.muted = false;
-      }).catch(e => {
+        audioAbilitato = true;
+      }).catch(err => {
         audio.muted = false;
-        console.warn("Primo tentativo audio:", e);
+        console.error("Errore audio:", err);
       });
     }
 
-    // Ascolta i messaggi dal sensore.html sullo stesso dominio GitHub
-    window.addEventListener('storage', (event) => {
-      if (event.key === 'nuovo_terremoto_id' && event.newValue) {
-        audio.muted = false;
-        audio.currentTime = 0;
-        audio.play().catch(err => {
-          // Se il browser blocca ancora, riappare il pulsante
-          statusBox.classList.remove('nascosto');
-          console.error("Riproduzione bloccata:", err);
-        });
+    async function controllaTerremoti() {
+      try {
+        const res = await fetch(queryUrl);
+        const data = await res.json();
+        
+        if (data.features && data.features.length > 0) {
+          // Crea una "firma" unica degli attributi dei record restituiti
+          const firmaAttuale = JSON.stringify(data.features.map(f => f.attributes));
+          
+          // Se non è il primo caricamento e i dati sono cambiati -> NUOVO TERREMOTO -> SUONA!
+          if (firmaUltimiEventi !== null && firmaAttuale !== firmaUltimiEventi) {
+            if (audioAbilitato) {
+              audio.currentTime = 0;
+              audio.play().catch(e => console.error("Errore play:", e));
+            } else {
+              statusBox.classList.remove('nascosto');
+            }
+          }
+          firmaUltimiEventi = firmaAttuale;
+        }
+      } catch (e) {
+        console.error("Errore lettura layer ArcGIS:", e);
       }
-    });
-  </script>
+    }
 
+    // Primo controllo immediato e poi ogni 15 secondi
+    controllaTerremoti();
+    setInterval(controllaTerremoti, 15000);
+  </script>
 </body>
 </html>
