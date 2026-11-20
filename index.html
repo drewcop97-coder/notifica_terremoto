@@ -7,7 +7,7 @@
   <style>
     body {
       margin: 0;
-      padding: 6px;
+      padding: 4px;
       font-family: 'Segoe UI', sans-serif;
       background: transparent;
       display: flex;
@@ -15,68 +15,73 @@
       justify-content: center;
       height: 100vh;
       box-sizing: border-box;
-    }
-    button {
-      width: 100%;
-      height: 100%;
-      border: none;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 600;
       cursor: pointer;
-      color: white;
-      background-color: #d9534f;
-      transition: 0.3s;
     }
-    button.attivo {
-      background-color: #28a745;
+    #status {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+      background-color: rgba(255, 255, 255, 0.85);
+      border: 1px solid #ccc;
+      transition: 0.3s;
+      text-align: center;
+    }
+    #status.attivo {
+      color: #155724;
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+    }
+    #status.bloccato {
+      color: #721c24;
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.04); }
+      100% { transform: scale(1); }
     }
   </style>
 </head>
-<body>
+<body onclick="sbloccaAudio()">
 
-  <button id="btn" onclick="sbloccaAudio()">🔇 Attiva Audio</button>
+  <div id="status">🔔 Notifiche audio pronte</div>
 
   <script>
-    const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
+    const AUDIO_URL = "https://image2url.com";
     const audio = new Audio(AUDIO_URL);
-    const btn = document.getElementById('btn');
+    const statusBox = document.getElementById('status');
 
-    // Legge il parametro ?id={eventid} passato da Experience Builder
     const params = new URLSearchParams(window.location.search);
     const currentId = params.get('id');
     const previousId = sessionStorage.getItem('ultimo_event_id');
-    const audioSbloccato = sessionStorage.getItem('audio_sbloccato') === 'true';
 
-    // Aggiorna lo stato visivo del pulsante se l'audio era già stato sbloccato
-    if (audioSbloccato) {
-      btn.classList.add('attivo');
-      btn.innerHTML = "🔊 Audio Attivo";
-    }
-
-    // Logica di controllo: suona SOLO se c'era già un ID salvato e ora è diverso
+    // Se cambia l'ID, prova SEMPRE a suonare in automatico
     if (currentId && previousId && currentId !== previousId) {
-      audio.play().catch(err => {
-        console.warn("Autoplay bloccato: cliccare sul pulsante per abilitare.", err);
-        btn.classList.remove('attivo');
-        btn.innerHTML = "⚠️ Clicca per sbloccare audio";
+      audio.play().then(() => {
+        statusBox.className = 'attivo';
+        statusBox.innerHTML = "🔊 Nuovo evento rilevato!";
+      }).catch(err => {
+        // Se il browser blocca l'autoplay, avvisa l'utente di cliccare
+        statusBox.className = 'bloccato';
+        statusBox.innerHTML = "🔇 Clicca qui per abilitare l'audio";
       });
     }
 
-    // Salva l'ID attuale per il prossimo confronto
     if (currentId) {
       sessionStorage.setItem('ultimo_event_id', currentId);
     }
 
-    // Funzione chiamata al click dell'operatore per autorizzare l'audio nel browser
+    // Sblocca l'audio al primo click
     function sbloccaAudio() {
-      // Riproduce e mette subito in pausa per ottenere il permesso dal browser
       audio.play().then(() => {
         audio.pause();
         audio.currentTime = 0;
-        sessionStorage.setItem('audio_sbloccato', 'true');
-        btn.classList.add('attivo');
-        btn.innerHTML = "🔊 Audio Attivo (Test OK)";
+        statusBox.className = 'attivo';
+        statusBox.innerHTML = "🔊 Audio attivo";
       }).catch(e => console.error(e));
     }
   </script>
