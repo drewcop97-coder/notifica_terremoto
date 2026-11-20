@@ -3,57 +3,51 @@
 <head>
   <meta charset="UTF-8">
   <meta name="robots" content="noindex, nofollow">
-  <title>Player Notifica Sismica</title>
+  <title>Notifica Sismica Sottile</title>
   <style>
     body {
       margin: 0;
-      padding: 4px;
-      font-family: 'Segoe UI', sans-serif;
+      padding: 0;
       background: transparent;
+      height: 100vh;
       display: flex;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
-      box-sizing: border-box;
+      justify-content: flex-start;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
       cursor: pointer;
-      user-select: none;
     }
+    /* Stile minimale: di default è quasi invisibile o un piccolo badge */
     #status {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 12px;
+      display: none; /* Nascosto finché tutto va bene per la massima pulizia */
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
       font-weight: 600;
-      color: #555;
-      background-color: rgba(255, 255, 255, 0.9);
-      border: 1px solid #ccc;
-      transition: 0.3s;
-      text-align: center;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    #status.attivo {
-      color: #155724;
-      background-color: #d4edda;
-      border-color: #c3e6cb;
-    }
-    #status.bloccato {
+      background-color: rgba(248, 215, 218, 0.9);
       color: #721c24;
-      background-color: #f8d7da;
-      border-color: #f5c6cb;
+      border: 1px solid #f5c6cb;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       animation: pulse 1.5s infinite;
+    }
+    #status.visibile {
+      display: inline-block;
     }
     @keyframes pulse {
       0% { transform: scale(1); }
-      50% { transform: scale(1.04); }
+      50% { transform: scale(1.03); }
       100% { transform: scale(1); }
     }
   </style>
 </head>
 <body onclick="sbloccaAudio()">
 
-  <div id="status">🔔 Clicca qui per attivare l'audio</div>
+  <!-- Messaggio visibile SOLO se il browser blocca l'audio -->
+  <div id="status">🔇 Clicca qui per abilitare l'audio</div>
 
   <script>
-    const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3"; 
+    // INSERISCI QUI IL LINK DIRETTO AL FILE MP3 O WAV
+    const AUDIO_URL = "https://tuodominio.it/path/al/suono.mp3";
     
     const audio = new Audio(AUDIO_URL);
     audio.preload = 'auto';
@@ -63,32 +57,25 @@
     const currentId = params.get('id');
     const previousId = sessionStorage.getItem('ultimo_event_id');
 
-    // Gestione dell'evento sismico
+    // Controllo nuovo terremoto
     if (currentId) {
       if (previousId && currentId !== previousId) {
-        audio.play().then(() => {
-          statusBox.className = 'attivo';
-          statusBox.innerHTML = "🔊 Nuovo evento rilevato!";
-        }).catch(err => {
-          statusBox.className = 'bloccato';
-          statusBox.innerHTML = "🔇 Clicca qui per abilitare l'audio";
+        audio.play().catch(err => {
+          // Se bloccato dal browser, mostra l'avviso minimale per consentire il click
+          statusBox.className = 'visibile';
         });
       }
-      // Aggiorna l'ID salvato in sessione
       sessionStorage.setItem('ultimo_event_id', currentId);
-    } else {
-      statusBox.innerHTML = "🔔 In attesa di eventi...";
     }
 
-    // Funzione per sbloccare l'audio tramite interazione utente
+    // Funzione di sblocco al primo click dell'utente
     function sbloccaAudio() {
       audio.play().then(() => {
         audio.pause();
         audio.currentTime = 0;
-        statusBox.className = 'attivo';
-        statusBox.innerHTML = "🔊 Audio attivo e pronto";
+        statusBox.className = ''; // Nasconde l'avviso rendendo il widget pulito
       }).catch(e => {
-        console.error("Errore sblocco audio:", e);
+        console.error("Errore:", e);
       });
     }
   </script>
