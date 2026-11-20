@@ -54,10 +54,17 @@
   <span id="log">In attesa...</span>
 
   <script>
-    const AUDIO_URL = "https://image2url.com" + "1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
-    const RAW_INGV_URL = "https://ingv.it" + "?limit=1&orderby=time&format=text";
-    // Proxy CORS per bypassare il blocco di sicurezza del browser verso INGV
-    const PROXY_URL = "https://corsproxy.io?" + encodeURIComponent(RAW_INGV_URL);
+    // Ricompone l'URL del tuo file MP3 su GitHub senza rischi di troncamento
+    const AUDIO_URL = new URL("Nuovo evento sismico.MP3", window.location.href).href;
+
+    // Ricompone l'URL completo di INGV e del Proxy CORS senza rischi di troncamento
+    const ingvHost = ["webservices", "ingv", "it"].join(".");
+    const ingvPath = ["fdsnws", "event", "1", "query"].join("/");
+    const ingvQuery = "limit=1&orderby=time&format=text";
+    const RAW_INGV_URL = "https://" + ingvHost + "/" + ingvPath + "?" + ingvQuery;
+    
+    const proxyHost = ["corsproxy", "io"].join(".");
+    const PROXY_URL = "https://" + proxyHost + "/?" + encodeURIComponent(RAW_INGV_URL);
     
     const audio = new Audio(AUDIO_URL);
     audio.preload = 'auto';
@@ -78,7 +85,7 @@
         logBox.textContent = "Audio attivo!";
       }).catch(err => {
         audio.muted = false;
-        logBox.textContent = "Errore sblocco: " + err.message;
+        logBox.textContent = "Errore MP3: " + err.message;
       });
     }
 
@@ -113,7 +120,7 @@
           ultimoEventId = eventIdAttuale;
         }
       } catch (e) {
-        logBox.textContent = "Errore Proxy/INGV: " + e.message;
+        logBox.textContent = "Errore INGV: " + e.message;
       }
     }
 
