@@ -2,39 +2,63 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Allerta Sismica</title>
+  <title>Player Audio Sismico</title>
   <style>
     body {
       margin: 0;
-      padding: 15px;
-      background-color: #d9534f;
-      color: white;
-      font-family: 'Segoe UI', sans-serif;
+      padding: 0;
+      background: transparent;
+      height: 100vh;
       display: flex;
       align-items: center;
-      justify-content: center;
-      height: 100vh;
-      box-sizing: border-box;
-      text-align: center;
+      font-family: 'Segoe UI', sans-serif;
+      overflow: hidden;
+      cursor: pointer;
     }
-    h2 { margin: 0; font-size: 18px; }
+    #status {
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      background-color: rgba(248, 215, 218, 0.95);
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    #status.nascosto {
+      display: none;
+    }
   </style>
 </head>
-<body>
+<body onclick="sbloccaAudio()">
 
-  <div>
-    <h2>NUOVO EVENTO SISMICO RILEVATO</h2>
-  </div>
+  <div id="status">🔇 Clicca qui per abilitare l'audio</div>
 
   <script>
-    const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
+    const AUDIO_URL = "https://image2url.com";
     const audio = new Audio(AUDIO_URL);
-    
-    // Suona appena la finestra viene aperta
-    window.addEventListener('DOMContentLoaded', () => {
-      audio.play().catch(err => {
-        console.log("Riproduzione bloccata: l'utente non ha ancora cliccato sull'app.", err);
-      });
+    audio.preload = 'auto';
+    const statusBox = document.getElementById('status');
+
+    function sbloccaAudio() {
+      audio.play().then(() => {
+        setTimeout(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        }, 100);
+        statusBox.className = 'nascosto';
+      }).catch(e => console.error("Errore sblocco:", e));
+    }
+
+    // Ascolta i messaggi dal sensore.html sullo stesso dominio GitHub
+    window.addEventListener('storage', (event) => {
+      if (event.key === 'nuovo_terremoto_id' && event.newValue) {
+        audio.currentTime = 0;
+        audio.play().catch(err => {
+          // Se per qualche motivo non era stato cliccato, mostra l'avviso
+          statusBox.className = '';
+        });
+      }
     });
   </script>
 
