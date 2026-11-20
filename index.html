@@ -16,6 +16,7 @@
       height: 100vh;
       box-sizing: border-box;
       cursor: pointer;
+      user-select: none;
     }
     #status {
       padding: 6px 12px;
@@ -23,10 +24,11 @@
       font-size: 12px;
       font-weight: 600;
       color: #555;
-      background-color: rgba(255, 255, 255, 0.85);
+      background-color: rgba(255, 255, 255, 0.9);
       border: 1px solid #ccc;
       transition: 0.3s;
       text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     #status.attivo {
       color: #155724;
@@ -48,41 +50,46 @@
 </head>
 <body onclick="sbloccaAudio()">
 
-  <div id="status">🔔 Notifiche audio pronte</div>
+  <div id="status">🔔 Clicca qui per attivare l'audio</div>
 
   <script>
-    const AUDIO_URL = "https://image2url.com";
+    const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3"; 
+    
     const audio = new Audio(AUDIO_URL);
+    audio.preload = 'auto';
     const statusBox = document.getElementById('status');
 
     const params = new URLSearchParams(window.location.search);
     const currentId = params.get('id');
     const previousId = sessionStorage.getItem('ultimo_event_id');
 
-    // Se cambia l'ID, prova SEMPRE a suonare in automatico
-    if (currentId && previousId && currentId !== previousId) {
-      audio.play().then(() => {
-        statusBox.className = 'attivo';
-        statusBox.innerHTML = "🔊 Nuovo evento rilevato!";
-      }).catch(err => {
-        // Se il browser blocca l'autoplay, avvisa l'utente di cliccare
-        statusBox.className = 'bloccato';
-        statusBox.innerHTML = "🔇 Clicca qui per abilitare l'audio";
-      });
-    }
-
+    // Gestione dell'evento sismico
     if (currentId) {
+      if (previousId && currentId !== previousId) {
+        audio.play().then(() => {
+          statusBox.className = 'attivo';
+          statusBox.innerHTML = "🔊 Nuovo evento rilevato!";
+        }).catch(err => {
+          statusBox.className = 'bloccato';
+          statusBox.innerHTML = "🔇 Clicca qui per abilitare l'audio";
+        });
+      }
+      // Aggiorna l'ID salvato in sessione
       sessionStorage.setItem('ultimo_event_id', currentId);
+    } else {
+      statusBox.innerHTML = "🔔 In attesa di eventi...";
     }
 
-    // Sblocca l'audio al primo click
+    // Funzione per sbloccare l'audio tramite interazione utente
     function sbloccaAudio() {
       audio.play().then(() => {
         audio.pause();
         audio.currentTime = 0;
         statusBox.className = 'attivo';
-        statusBox.innerHTML = "🔊 Audio attivo";
-      }).catch(e => console.error(e));
+        statusBox.innerHTML = "🔊 Audio attivo e pronto";
+      }).catch(e => {
+        console.error("Errore sblocco audio:", e);
+      });
     }
   </script>
 
