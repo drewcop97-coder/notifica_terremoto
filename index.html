@@ -48,8 +48,8 @@
   <button id="btnTest" onclick="simulaTerremoto()">🔔 Test</button>
 
   <script>
-    const AUDIO_URL = "https://image2url.com";
-    const LAYER_URL = "https://arcgis.com"; 
+    const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
+    const LAYER_URL = "https://utility.arcgis.com/usrsvcs/servers/7d902cfd09864a8290a6e211dd58a097/rest/services/EventsList/FeatureServer/2"; 
     const queryUrl = `${LAYER_URL}/query?where=1%3D1&outFields=*&resultRecordCount=5&f=json`;
     
     const audio = new Audio(AUDIO_URL);
