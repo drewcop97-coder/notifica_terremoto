@@ -4,59 +4,70 @@
   <meta charset="UTF-8">
   <title>Player Audio Sismico</title>
   <style>
-    body {
+    html, body {
       margin: 0;
       padding: 0;
+      width: 100%;
+      height: 100%;
       background: transparent;
-      height: 100vh;
       display: flex;
       align-items: center;
+      justify-content: flex-start;
       font-family: 'Segoe UI', sans-serif;
       overflow: hidden;
-      cursor: pointer;
     }
     #status {
-      padding: 4px 10px;
+      padding: 5px 12px;
       border-radius: 12px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
-      background-color: rgba(248, 215, 218, 0.95);
+      background-color: #f8d7da;
       color: #721c24;
       border: 1px solid #f5c6cb;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+      cursor: pointer;
+      user-select: none;
     }
     #status.nascosto {
-      display: none;
+      display: none !important;
     }
   </style>
 </head>
-<body onclick="sbloccaAudio()">
+<body>
 
-  <div id="status">🔇 Clicca qui per abilitare l'audio</div>
+  <div id="status" onclick="sbloccaAudio()">🔇 Clicca qui per abilitare l'audio</div>
 
   <script>
-    const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
+    const AUDIO_URL = "https://image2url.com";
     const audio = new Audio(AUDIO_URL);
     audio.preload = 'auto';
     const statusBox = document.getElementById('status');
 
     function sbloccaAudio() {
+      // 1. Nasconde subito il badge al clic dell'utente
+      statusBox.classList.add('nascosto');
+
+      // 2. Sblocca l'elemento Audio con volume a zero
+      audio.muted = true;
       audio.play().then(() => {
-        setTimeout(() => {
-          audio.pause();
-          audio.currentTime = 0;
-        }, 100);
-        statusBox.className = 'nascosto';
-      }).catch(e => console.error("Errore sblocco:", e));
+        audio.pause();
+        audio.currentTime = 0;
+        audio.muted = false;
+      }).catch(e => {
+        audio.muted = false;
+        console.warn("Primo tentativo audio:", e);
+      });
     }
 
     // Ascolta i messaggi dal sensore.html sullo stesso dominio GitHub
     window.addEventListener('storage', (event) => {
       if (event.key === 'nuovo_terremoto_id' && event.newValue) {
+        audio.muted = false;
         audio.currentTime = 0;
         audio.play().catch(err => {
-          // Se per qualche motivo non era stato cliccato, mostra l'avviso
-          statusBox.className = '';
+          // Se il browser blocca ancora, riappare il pulsante
+          statusBox.classList.remove('nascosto');
+          console.error("Riproduzione bloccata:", err);
         });
       }
     });
