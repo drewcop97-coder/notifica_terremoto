@@ -54,10 +54,10 @@
   <span id="log">In attesa...</span>
 
   <script>
-    const AUDIO_URL = "https://image2url.com";
+    const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
     const INGV_URL = "https://arcgisserver.ingv.it/pws/pws.php?lastNdays=1&sep=;&zone=italy&classify=classe1;0;2|classe2;2;3|classe3;3;4|classe4;4;5|classe5;5;6|classe6;6;&splitTime=true&limit=1";
     
-    const audio = new Audio(https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3);
+    const audio = new Audio(AUDIO_URL);
     audio.preload = 'auto';
     const statusBox = document.getElementById('status');
     const logBox = document.getElementById('log');
@@ -88,23 +88,19 @@
 
     async function controllaTerremoti() {
       try {
-        // Aggiunge un timestamp casuale per evitare che il browser usi risposte vecchie in cache
         const urlNoCache = `${INGV_URL}&_=${Date.now()}`;
         const res = await fetch(urlNoCache);
         const text = await res.text();
         
-        // Divide le righe: riga 0 = intestazione, riga 1 = ultimo terremoto
         const righe = text.trim().split('\n');
         
         if (righe.length >= 2) {
           const colonne = righe[1].split(';');
-          const eventIdAttuale = colonne[0].trim(); // Es. 48029602
-          const luogo = colonne[13] ? colonne[13].trim() : "";
+          const eventIdAttuale = colonne[0].trim();
           const magnitudo = colonne[11] ? colonne[11].trim() : "";
 
           logBox.textContent = `ID: ${eventIdAttuale} (M ${magnitudo})`;
 
-          // Se non è il primo avvio e l'EventID è cambiato -> SUONA!
           if (ultimoEventId !== null && eventIdAttuale !== ultimoEventId) {
             if (audioAbilitato) {
               audio.currentTime = 0;
@@ -120,7 +116,6 @@
       }
     }
 
-    // Controlla subito all'avvio e poi ogni 15 secondi
     controllaTerremoti();
     setInterval(controllaTerremoti, 15000);
   </script>
