@@ -1,48 +1,42 @@
-const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
-const audio = new Audio(AUDIO_URL);
-audio.preload = 'auto';
-const statusBox = document.getElementById('status');
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Allerta Sismica</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 15px;
+      background-color: #d9534f;
+      color: white;
+      font-family: 'Segoe UI', sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    h2 { margin: 0; font-size: 18px; }
+  </style>
+</head>
+<body>
 
-const params = new URLSearchParams(window.location.search);
-const currentId = params.get('id');
-const previousId = sessionStorage.getItem('ultimo_event_id');
+  <div>
+    <h2>⚠️ NUOVO EVENTO SISMICO RILEVATO</h2>
+  </div>
 
-// All'avvio, controlla se il browser permette già l'autoplay o se serve il clic
-window.addEventListener('DOMContentLoaded', () => {
-  if (currentId && previousId && currentId !== previousId) {
-    // Prova a suonare per il nuovo terremoto
-    audio.play().catch(() => {
-      statusBox.className = 'visibile';
+  <script>
+    const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
+    const audio = new Audio(AUDIO_URL);
+    
+    // Suona appena la finestra viene aperta
+    window.addEventListener('DOMContentLoaded', () => {
+      audio.play().catch(err => {
+        console.log("Riproduzione bloccata: l'utente non ha ancora cliccato sull'app.", err);
+      });
     });
-  } else {
-    // Test silenzioso al caricamento per capire se l'audio è sbloccato
-    audio.muted = true;
-    audio.play().then(() => {
-      audio.pause();
-      audio.currentTime = 0;
-      audio.muted = false;
-    }).catch(() => {
-      audio.muted = false;
-      statusBox.className = 'visibile'; // Mostra subito l'avviso se il browser ha bloccato il dominio
-    });
-  }
+  </script>
 
-  if (currentId) {
-    sessionStorage.setItem('ultimo_event_id', currentId);
-  }
-});
-
-// Funzione di sblocco al click
-function sbloccaAudio() {
-  audio.muted = false;
-  audio.play().then(() => {
-    // Lascia suonare per 100ms prima di fermare, così il browser registra l'interazione
-    setTimeout(() => {
-      audio.pause();
-      audio.currentTime = 0;
-    }, 100);
-    statusBox.className = '';
-  }).catch(e => {
-    console.error("Errore sblocco:", e);
-  });
-}
+</body>
+</html>
