@@ -54,38 +54,67 @@
   <span id="log">In attesa...</span>
 
   <script>
-    // Ricompone l'URL del tuo file MP3 su GitHub senza rischi di troncamento
-    const AUDIO_URL = new URL("Nuovo evento sismico.MP3", window.location.href).href;
-
-    // Ricompone l'URL completo di INGV e del Proxy CORS senza rischi di troncamento
     const ingvHost = ["webservices", "ingv", "it"].join(".");
     const ingvPath = ["fdsnws", "event", "1", "query"].join("/");
     const ingvQuery = "limit=1&orderby=time&format=text";
     const RAW_INGV_URL = "https://" + ingvHost + "/" + ingvPath + "?" + ingvQuery;
     
-    const proxyHost = ["corsproxy", "io"].join(".");
-    const PROXY_URL = "https://" + proxyHost + "/?" + encodeURIComponent(RAW_INGV_URL);
+    // Proxy CORS affidabile (allorigins) con fallback
+    const proxyHost = ["api", "allorigins", "win"].join(".");
+    const PROXY_URL = "https://" + proxyHost + "/raw?url=" + encodeURIComponent(RAW_INGV_URL);
     
-    const audio = new Audio(AUDIO_URL);
-    audio.preload = 'auto';
     const statusBox = document.getElementById('status');
     const logBox = document.getElementById('log');
     
+    let audioCtx = null;
     let audioAbilitato = false;
     let ultimoEventId = null;
 
+    function riproduciAllerta() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        const now = audioCtx.currentTime;
+        const frequenze = [523.25, 659.25]; // Do5 - Mi5 (Ding-Dong)
+
+        frequenze.forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + i * 0.25);
+          gain.gain.setValueAtTime(0.3, now + i * 0.25);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.25 + 0.5);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now + i * 0.25);
+          osc.stop(now + i * 0.25 + 0.5);
+        });
+
+        if ('speechSynthesis' in window) {
+          setTimeout(() => {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance("Nuovo evento sismico");
+            msg.lang = "it-IT";
+            msg.rate = 1.0;
+            window.speechSynthesis.speak(msg);
+          }, 550);
+        }
+      } catch (err) {
+        logBox.textContent = "Errore suono: " + err.message;
+      }
+    }
+
     function attivaAudio() {
       statusBox.classList.add('nascosto');
-      audio.muted = true;
-      audio.play().then(() => {
-        audio.pause();
-        audio.currentTime = 0;
-        audio.muted = false;
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      audioCtx.resume().then(() => {
         audioAbilitato = true;
         logBox.textContent = "Audio attivo!";
-      }).catch(err => {
-        audio.muted = false;
-        logBox.textContent = "Errore MP3: " + err.message;
       });
     }
 
@@ -97,30 +126,32 @@
 
     async function controllaTerremoti() {
       try {
-        const res = await fetch(PROXY_URL, { cache: 'no-store' });
+        const res = await fetch(PROXY_URL + "&_=" + Date.now());
+        if (!res.ok) throw new Error("HTTP " + res.status);
         const text = await res.text();
         
         const righe = text.trim().split('\n');
         
         if (righe.length >= 2) {
-          const colonne = righe.split('|');
-          const eventIdAttuale = colonne.trim();
-          const magnitudo = colonne ? colonne.trim() : "";
+          const colonne = righe[1].split('|');
+          const eventIdAttuale = colonne[0].trim();
+          const magnitudo = colonne[10] ? colonne[10].trim() : "";
 
-          logBox.textContent = `ID: ${eventIdAttuale} (M ${magnitudo})`;
+          logBox.textContent = "ID: " + eventIdAttuale + " (M " + magnitudo + ")";
 
           if (ultimoEventId !== null && eventIdAttuale !== ultimoEventId) {
             if (audioAbilitato) {
-              audio.currentTime = 0;
-              audio.play().catch(e => logBox.textContent = "Errore play: " + e.message);
+              riproduciAllerta();
             } else {
               statusBox.classList.remove('nascosto');
             }
           }
           ultimoEventId = eventIdAttuale;
+        } else {
+          logBox.textContent = "Risposta vuota da INGV";
         }
       } catch (e) {
-        logBox.textContent = "Errore INGV: " + e.message;
+        logBox.textContent = "Errore rete: " + e.message;
       }
     }
 
