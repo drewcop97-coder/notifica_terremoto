@@ -59,10 +59,13 @@
     const ingvQuery = "limit=1&orderby=time&format=text";
     const RAW_INGV_URL = "https://" + ingvHost + "/" + ingvPath + "?" + ingvQuery;
     
-    // Proxy CORS affidabile (allorigins) con fallback
     const proxyHost = ["api", "allorigins", "win"].join(".");
     const PROXY_URL = "https://" + proxyHost + "/raw?url=" + encodeURIComponent(RAW_INGV_URL);
     
+    // Carica il tuo MP3 locale su GitHub
+    const mioMp3 = new Audio(encodeURI("Nuovo evento sismico.MP3"));
+    mioMp3.preload = 'auto';
+
     const statusBox = document.getElementById('status');
     const logBox = document.getElementById('log');
     
@@ -70,7 +73,7 @@
     let audioAbilitato = false;
     let ultimoEventId = null;
 
-    function riproduciAllerta() {
+    function suonaParacadute() {
       try {
         if (!audioCtx) {
           audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -80,7 +83,7 @@
         }
 
         const now = audioCtx.currentTime;
-        const frequenze = [523.25, 659.25]; // Do5 - Mi5 (Ding-Dong)
+        const frequenze = [523.25, 659.25];
 
         frequenze.forEach((freq, i) => {
           const osc = audioCtx.createOscillator();
@@ -105,17 +108,36 @@
           }, 550);
         }
       } catch (err) {
-        logBox.textContent = "Errore suono: " + err.message;
+        logBox.textContent = "Errore paracadute: " + err.message;
       }
+    }
+
+    function riproduciAllerta() {
+      mioMp3.currentTime = 0;
+      mioMp3.play().catch(() => {
+        // Se l'MP3 non è trovato o bloccato, attiva automaticamente il Ding-Dong + voce
+        suonaParacadute();
+      });
     }
 
     function attivaAudio() {
       statusBox.classList.add('nascosto');
+      
+      // Sblocca sia l'AudioContext (paracadute) sia l'elemento MP3
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      audioCtx.resume().then(() => {
-        audioAbilitato = true;
-        logBox.textContent = "Audio attivo!";
+      audioCtx.resume();
+
+      mioMp3.muted = true;
+      mioMp3.play().then(() => {
+        mioMp3.pause();
+        mioMp3.currentTime = 0;
+        mioMp3.muted = false;
+      }).catch(() => {
+        mioMp3.muted = false;
       });
+
+      audioAbilitato = true;
+      logBox.textContent = "Audio attivo!";
     }
 
     function simulaTerremoto() {
