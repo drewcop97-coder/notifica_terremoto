@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <title>Notifica Sismica ArcGIS</title>
+  <title>Notifica Sismica INGV</title>
   <style>
     html, body {
       margin: 0;
@@ -28,17 +28,22 @@
       cursor: pointer;
       user-select: none;
     }
-    #status.nascosto {
-      display: none !important;
-    }
+    #status.nascosto { display: none !important; }
     #btnTest {
       padding: 4px 8px;
       border-radius: 10px;
       font-size: 11px;
-      background: rgba(0,0,0,0.6);
+      background: #222;
       color: white;
       border: none;
       cursor: pointer;
+    }
+    #log {
+      font-size: 11px;
+      background: rgba(255,255,255,0.9);
+      padding: 3px 6px;
+      border-radius: 6px;
+      color: #333;
     }
   </style>
 </head>
@@ -46,18 +51,19 @@
 
   <div id="status" onclick="attivaAudio()">🔇 Clicca qui per abilitare l'audio</div>
   <button id="btnTest" onclick="simulaTerremoto()">🔔 Test</button>
+  <span id="log">In attesa...</span>
 
   <script>
-    const AUDIO_URL = "https://www.image2url.com/r2/default/audio/1795119985931-bfc559b7-1f06-4403-8735-f6deff3510d4.mp3";
-    const LAYER_URL = "https://utility.arcgis.com/usrsvcs/servers/7d902cfd09864a8290a6e211dd58a097/rest/services/EventsList/FeatureServer/2"; 
-    const queryUrl = `${LAYER_URL}/query?where=1%3D1&outFields=*&resultRecordCount=5&f=json`;
+    const AUDIO_URL = "https://image2url.com";
+    const INGV_URL = "https://arcgisserver.ingv.it/pws/pws.php?lastNdays=1&sep=;&zone=italy&classify=classe1;0;2|classe2;2;3|classe3;3;4|classe4;4;5|classe5;5;6|classe6;6;&splitTime=true&limit=1";
     
     const audio = new Audio(AUDIO_URL);
     audio.preload = 'auto';
     const statusBox = document.getElementById('status');
+    const logBox = document.getElementById('log');
     
     let audioAbilitato = false;
-    let firmaUltimiEventi = null;
+    let ultimoEventId = null;
 
     function attivaAudio() {
       statusBox.classList.add('nascosto');
@@ -67,43 +73,54 @@
         audio.currentTime = 0;
         audio.muted = false;
         audioAbilitato = true;
+        logBox.textContent = "Audio attivo!";
       }).catch(err => {
         audio.muted = false;
-        console.error("Errore audio:", err);
+        logBox.textContent = "Errore sblocco: " + err.message;
       });
     }
 
-    // Funzione di test: simula l'arrivo di un nuovo dato dal layer ArcGIS
     function simulaTerremoto() {
-      firmaUltimiEventi = "dato_vecchio_simulato";
+      logBox.textContent = "Test INGV...";
+      ultimoEventId = "00000000";
       controllaTerremoti();
     }
 
     async function controllaTerremoti() {
       try {
-        const res = await fetch(queryUrl);
-        const data = await res.json();
+        // Aggiunge un timestamp casuale per evitare che il browser usi risposte vecchie in cache
+        const urlNoCache = `${INGV_URL}&_=${Date.now()}`;
+        const res = await fetch(urlNoCache);
+        const text = await res.text();
         
-        if (data.features && data.features.length > 0) {
-          const firmaAttuale = JSON.stringify(data.features.map(f => f.attributes));
-          
-          if (firmaUltimiEventi !== null && firmaAttuale !== firmaUltimiEventi) {
+        // Divide le righe: riga 0 = intestazione, riga 1 = ultimo terremoto
+        const righe = text.trim().split('\n');
+        
+        if (righe.length >= 2) {
+          const colonne = righe[1].split(';');
+          const eventIdAttuale = colonne[0].trim(); // Es. 48029602
+          const luogo = colonne[13] ? colonne[13].trim() : "";
+          const magnitudo = colonne[11] ? colonne[11].trim() : "";
+
+          logBox.textContent = `ID: ${eventIdAttuale} (M ${magnitudo})`;
+
+          // Se non è il primo avvio e l'EventID è cambiato -> SUONA!
+          if (ultimoEventId !== null && eventIdAttuale !== ultimoEventId) {
             if (audioAbilitato) {
               audio.currentTime = 0;
-              audio.play().catch(e => console.error("Errore play:", e));
+              audio.play().catch(e => logBox.textContent = "Errore play: " + e.message);
             } else {
               statusBox.classList.remove('nascosto');
             }
           }
-          firmaUltimiEventi = firmaAttuale;
-        } else {
-          console.warn("Nessun dato ricevuto dal layer:", data);
+          ultimoEventId = eventIdAttuale;
         }
       } catch (e) {
-        console.error("Errore lettura layer ArcGIS:", e);
+        logBox.textContent = "Errore INGV: " + e.message;
       }
     }
 
+    // Controlla subito all'avvio e poi ogni 15 secondi
     controllaTerremoti();
     setInterval(controllaTerremoti, 15000);
   </script>
